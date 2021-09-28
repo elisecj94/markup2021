@@ -1,0 +1,95 @@
+---
+title: "Assignment 1"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Loading the required packages
+```{r, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(dplyr)
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+```
+\
+Setting the RNG
+```{r, warning = FALSE, message = FALSE}
+set.seed(103) 
+```
+\
+Determining that 100 simulations will be done, with n = 5000 per simulation
+```{r, warning = FALSE, message = FALSE}
+n_per_sim <- 5000
+num_sims <- 100
+```
+\
+Creating empty vectors in which information on the different statistics will be stored
+```{r, warning = FALSE, message = FALSE}
+sim_bias <- rep(NA, times = num_sims) #absolute bias
+sim_m <- rep(NA, times = num_sims) #sample mean
+sim_se <- rep(NA, times = num_sims) #population SE
+sim_lb <- rep(NA, times = num_sims) #lower bound 95% CI
+sim_ub <- rep(NA, times = num_sims) #upper bound 95% CI
+```
+\
+Creating a loop which calculates relevant statistics for each simulation and putting these statistics together in a tibble
+```{r, warning = FALSE, message = FALSE}
+for (i in 1:num_sims){
+sim <- rnorm(n_per_sim, mean = 0, sd = 1) #drawing from the random normal distribution
+sim_m[i]  <- mean(sim) #mean
+sim_se[i] <- 1/(sqrt(n_per_sim)) #population SE
+sim_bias[i] <- mean(sim) - 0 #absolute bias
+sim_ub[i] <- sim_m[i] + (qt(0.975, (100-1))*(sim_se[i])) #upper bound 95% CI 
+sim_lb[i] <- sim_m[i] - (qt(.975, (100-1))*(sim_se[i])) #lower bound 95% CI 
+}
+sim_stat <- cbind(sim_bias, sim_m, sim_se, sim_lb, sim_ub) 
+sim_stat <- as_tibble(sim_stat)
+```
+\
+Adding information on whether the population mean falls within the 95% CI to the previously created tibble
+```{r, warning = FALSE, message = FALSE}
+ci_within <-
+  sim_stat %>%
+  mutate(within = sim_lb < 0 & 0 < sim_ub)
+
+```
+
+\
+Creating a table
+```{r, warning = FALSE, message = FALSE}
+#selecting only those simulations without 0 in the 95% CI
+results_outside <- filter(ci_within, within == "FALSE")
+results_outside <- as_data_frame(results_outside)
+
+#changing column names to make them more easily readable
+colnames(results_outside)[1] = "Mean"
+colnames(results_outside)[2] = "Absolute bias"
+colnames(results_outside)[3] = "Standard error (population)"
+colnames(results_outside)[4] = "Lower bound 95% CI"
+colnames(results_outside)[5] = "Upper bound 95% CI"
+colnames(results_outside)[6] = "95% CI covers population mean"
+
+#creating a nicer-looking table
+table <- results_outside %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "center")
+table
+```
+\
+Creating a forest plot
+```{r, warning = FALSE, message = FALSE}
+#Creating a forest plot which shows the simulations of which the 95% CI does not include 0 in red
+ggplot(data=ci_within, aes(x=1:100, y=sim_m, ymin=sim_lb, ymax=sim_ub, col=within, 
+  fill=within)) +
+  geom_pointrange() + 
+  geom_hline(yintercept=0) + 
+  coord_flip() +  
+  xlab("Simulations (n = 100)") + ylab("Mean and 95% CI") +
+  theme_bw()  
+```
