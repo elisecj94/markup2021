@@ -1,0 +1,99 @@
+---
+title: "Exercise week 2"
+author: "Elise Schramkowski"
+date: '26-10-2021'
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE, message = FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+\
+
+### **Loading the relevant packages**   
+```{r, warning=FALSE, message = FALSE}
+library(tidyverse)
+library(xfun)
+library(knitr)    
+library(kableExtra) 
+```
+\
+
+### **Function power of independent *t*-test**   
+Below, one can find a function with which one can calculate the power of an independent *t*-test. Within the function, one can set a seed which enables replication of the results of the RNG. Furthermore, the number of observations per simulation, the number of simulations, the means and standard deviations of the two groups, and the confidence interval have to be specified by the user. 
+```{r, warning=FALSE, message = FALSE}
+power_ind_ttest <- function(seed, n, n_sims, m_gr1, sd_gr1, m_gr2, sd_gr2, CI) {
+  set.seed(seed) #fixing the RNG
+  p_val = replicate(n_sims, t.test(rnorm(n,m_gr1,sd_gr1),rnorm(n,m_gr2,sd_gr2), conf.level = CI)$p.val) #drawing p-values from a t-test through simulation
+  power <- mean(p_val <= 1 - CI) #calculating power (proportion of results with p-values smaller than the alpha level)
+  return(power)
+}
+```
+\
+
+### **Simulations**   
+I looked at relation between number of observations per group and the power of the *t*-test. In each simulation, sd's are 1, m_gr1 = .5, m_gr2 = 0, and CI = .95. I used *n* = 30, *n* = 50, and *n* = 70, respectively, for each group in the different simulations.  Logically, power is higher when the number of observations is higher.
+```{r, warning=FALSE, message = FALSE}
+power_123_30 <- power_ind_ttest(123, 30, 1000, .5, 1, 0, 1, .95) #n = 30
+power_123_50 <- power_ind_ttest(123, 50, 1000, .5, 1, 0, 1, .95) #n = 50
+power_123_70 <- power_ind_ttest(123, 70, 1000, .5, 1, 0, 1, .95) #n = 70
+
+#creating a table with different simulations
+power_123_1000 <- data.frame(c(power_123_30, power_123_50, power_123_70)) 
+rownames(power_123_1000) <- c("n = 30","n = 50","n = 70") #row names
+colnames(power_123_1000) <- c("seed 123") #column names
+kable(power_123_1000, "html", caption = "<center><strong>Table 1. 1000 power simulations</strong></center>") %>% #html output with caption
+  kable_styling(bootstrap_options = c("striped"), full_width = F)
+```
+
+\
+\
+Since results can be seed dependent, I ran the same analyses again, this time using a different seed. It can be seen that results can differ somewhat based on which seed was used when doing 1000 simulations.
+```{r, warning=FALSE, message = FALSE}
+power_1234_30 <- power_ind_ttest(1234, 30, 1000, .5, 1, 0, 1, .95) #n = 30
+power_1234_50 <- power_ind_ttest(1234, 50, 1000, .5, 1, 0, 1, .95) #n = 50
+power_1234_70 <- power_ind_ttest(1234, 70, 1000, .5, 1, 0, 1, .95) #n = 70
+
+#creating a table with different simulations
+power_1234_1000 <- data.frame(c(power_1234_30, power_1234_50, power_1234_70))
+rownames(power_1234_1000) <- c("n = 30","n = 50","n = 70") #row names
+colnames(power_1234_1000) <- c("seed 1234") #column names
+power_1000_sim <- cbind(power_123_1000, power_1234_1000) #binding the two data frames
+kable(power_1000_sim, "html", caption = "<center><strong>Table 2. 1000 power simulations with two seeds</strong></center>") %>% #html output with caption
+  kable_styling(bootstrap_options = c("striped"), full_width = F)
+```
+
+\
+\
+I ran the analyses conducted above again, this time using 10,000 simulations. This leads to the results of both seeds being more comparable.
+```{r, warning=FALSE, message = FALSE}
+#Power analysis with seed 123.
+power_123_30_10000 <- power_ind_ttest(123, 30, 10000, .5, 1, 0, 1, .95) #n = 30
+power_123_50_10000 <- power_ind_ttest(123, 50, 10000, .5, 1, 0, 1, .95) #n = 50
+power_123_70_10000 <- power_ind_ttest(123, 70, 10000, .5, 1, 0, 1, .95) #n = 70
+power_123_10000 <- data.frame(c(power_123_30_10000 , power_123_50_10000 , power_123_70_10000))
+rownames(power_123_10000) <- c("n = 30","n = 50","n = 70") #row names
+colnames(power_123_10000) <- c("seed 123") #column names
+
+#Power analysis with seed 1234.
+power_1234_30_10000 <- power_ind_ttest(1234, 30, 10000, .5, 1, 0, 1, .95) #n = 30
+power_1234_50_10000 <- power_ind_ttest(1234, 50, 10000, .5, 1, 0, 1, .95) #n = 50
+power_1234_70_10000 <- power_ind_ttest(1234, 70, 10000, .5, 1, 0, 1, .95) #n = 70
+power_1234_10000 <- data.frame(c(power_1234_30_10000 , power_1234_50_10000 , power_1234_70_10000))
+rownames(power_1234_10000) <- c("n = 30","n = 50","n = 70") #row names
+colnames(power_1234_10000) <- c("seed 1234") #column names
+power_10000_sim <- cbind(power_123_10000, power_1234_10000) #binding the two data frames
+kable(power_10000_sim, "html", caption = "<center><strong>Table 3. 10,000 power simulations with two seeds</strong></center>") %>% #html output with caption
+  kable_styling(bootstrap_options = c("striped"), full_width = F)
+```
+
+\
+\
+
+### **Session info**
+\
+```{r, warning=FALSE, message = FALSE}
+sessionInfo()
+```
