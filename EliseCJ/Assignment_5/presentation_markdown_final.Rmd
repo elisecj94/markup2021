@@ -1,0 +1,225 @@
+---
+title: "Thesis statistical reporting in sociology"
+date: 07-12-2021
+bibliography: bibliography_presentation.bib
+output: 
+    ioslides_presentation:
+      logo: UU_logo_2021_EN_RGB.png
+      css: presentation.css
+      smaller: true
+      widescreen: true
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Statistical reporting quality
+
+Importance:
+
+- Reproduction and critical assessment
+- Erroneous results and misinformation
+- Standardization
+
+Many aspects already studied in (among others) psychology, but not in sociology.
+
+
+## Topics of interest
+
+1. Requested adherence to statistical reporting guidelines (i.e., APA manual) by journals
+2. Statistical reporting errors 
+    - inconsistencies
+    - gross inconsistencies
+3. Publication bias/*p*-hacking
+    - replication @Gerber
+4. 'Bump' in *p*-values
+5. Marginal significance 
+
+Note that not all topics are (fully) addressed in this presentation.
+
+## Data sets (1)
+- Data set with information on which journals require adherence to which guidelines 
+    - all 143 sociology journals from @WOS were included
+- Data set *AllP* 
+    - automatic retrieval
+    - all *p*-values retrieved using @statcheck122's statcheck 
+    - information on marginal significance
+
+
+## Data sets (2)
+- Data set *APA* 
+    - automatic retrieval  
+    - all APA-reported results as retrieved using statcheck 
+- Data set *Hyp* 
+    - Created to replicate @Gerber
+    - manual retrieval
+    - all *p*-values of hypotheses
+    - all reproducible results of hypotheses
+    - information on marginal significance for results of hypotheses
+
+
+## Data sets (3)
+<center>
+<img src='table_1_thesis_presentation.png' width = 60%/>
+<center>
+
+## Small problem when running statcheck   
+For *JMF*, statcheck could initially not extract results with a minus sign. One of the package's authors solved this problem for us by adapting the GitHub version of the package, which we installed using the R code below.
+
+```{r, eval=F, echo=T} 
+install.packages("devtools")
+devtools::install_github("MicheleNuijten/statcheck")
+install.packages("statcheck")
+```
+
+## *Hyp* article selection process
+<center>
+<img src="figure_1_thesis.png" height = 500 />
+<center>
+
+## Statistical analyses
+- For all topics: frequencies & percentages
+- Logistic regressions for testing hypotheses
+\
+\
+
+$$\scriptsize
+\begin{align}
+ H1: log(Inconsistency_{i}) &= \beta_0 + \beta_1\times hypothesis_i + \epsilon_i  \\
+ H2: log(Gross\,inconsistency_{i}) &= \beta_0 + \beta_1\times hypothesis_i + \epsilon_i \\
+ H3: log(Publication\,bias_{i}) &= \beta_0 + \beta_1\times hypothesis_i + \epsilon_i \\
+ H4: log(Marginal\,significance_{i}) &= \beta_0 + \beta_1\times hypothesis_i + \epsilon_i
+\end{align}
+$$
+
+## Statistical reporting guidelines (1)
+13 of 143 journals (9.1%) requested authors to adhere to APA statistical reporting guidelines
+
+
+## Statistical reporting guidelines (2)
+```{r, warning = FALSE, message = FALSE, out.width = "100%", out.height = "50px"}
+library('readxl') #reading Excel file
+library('DT') #creating a datatable
+library(dplyr) #pipes
+library(tidyr) #formatting tables
+
+#Loading data set.
+SRG = read_excel("C:/Users/ECJ/Documents/Master's thesis/Excel/SRG_final_presentation.xlsx", col_types = c("text", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric"))
+
+#Replacing all NAs with zeros.
+SRG <- SRG %>% mutate_all(funs(replace_na(.,0)))
+
+#Creating a datatable through which one can scroll vertically and horizontally.
+SRG <- datatable(SRG, extensions = 'FixedColumns', rownames = FALSE, options = list(pageLength = 143, dom = 't', scrollX = TRUE, scrollY = "300px", fixedColumns = TRUE, columnDefs = list(list(width = '2000px', targets = c(1)))))
+
+#formatting datatable.
+formatStyle(SRG, columns = c(1:19), fontSize = '65%')
+```
+
+## Statistical reporting errors {.columns-2}
+<div class='left' style='float:left;width:98%'>
+
+*APA* (*n* = 505):\
+- 69 results (13.7%) were inconsistent\
+- 8 results (1.6%) were grossly inconsistent\
+
+</div>
+
+<div class='right' style='float:right;width:98%'>
+
+*Hyp* (*n* = 351):  
+- 17 results (4.8%) were inconsistent  
+-  3 results (0.9%) were grossly inconsistent
+</div>
+
+  
+## Publication bias & bump in *p*-values (1)
+```{r, warning = FALSE, message = FALSE}
+library('readxl') #reading Excel file
+library('plotly') #creating an interactive plot
+
+#loading data set
+p_values_exact = read_excel("C:/Users/ECJ/Documents/Master's thesis/Excel/pb_bump_AllP_presentation.xlsx", col_types = c("text", "numeric", "numeric", "text"))
+
+p_values_exact$Reported.P.Value <- as.numeric(p_values_exact$Reported.P.Value) #converting Reported.P.Value to a numeric variable
+p_values_exact_10 <- subset(p_values_exact, Reported.P.Value <= .10) #selecting only p-values in relevant range
+
+#function which creates a dark gray, dotted vertical line.
+vline <- function(x = 0, color = "darkgray") {
+  list(
+    type = "line",
+    y0 = 0,
+    y1 = 1,
+    yref = "paper",
+    x0 = x,
+    x1 = x,
+    line = list(color = color, dash="dot")
+  )
+}
+
+
+#Plot
+plot_AllP_01 <- p_values_exact_10 %>%
+  plot_ly(x = ~Reported.P.Value, marker = list(color = "lightgray", line = list(color = "darkgray", width = 2))) %>% #variable of interest and coloring
+  add_histogram(xbins = list(start = 0, end = .1, size = 0.01)) %>%  #bin details
+  layout(title = "<b>Exactly reported p-values in the range [0 -.10] from AllP<b>", font=list(size = 12), #title 
+         yaxis = list(title = "Count", zeroline = FALSE), #label y-axis
+         xaxis = list(title = "P-value, binwidth = .01", zeroline = FALSE, dtick = 0.01), shapes = list(vline(.05))) #label x-axis, adding vertical line
+
+plot_AllP_02 <- p_values_exact_10 %>%
+  plot_ly(x = ~Reported.P.Value, marker = list(color = "lightgray", line = list(color = "darkgray", width = 2))) %>% #variable of interest and coloring
+  add_histogram(xbins = list(start = .01, end = .10, size = 0.02)) %>%  #bin details
+  layout(title = "<b>Exactly reported p-values in the range [0 -.10] from AllP<b>", font=list(size = 12), #title 
+         yaxis = list(title = "Count", zeroline = FALSE), #label y-axis
+         xaxis = list(title = "P-value, binwidth = .02", zeroline = FALSE, dtick = 0.01), shapes = list(vline(.05))) #label x-axis, adding vertical line
+
+plot_AllP <- subplot(plot_AllP_01, plot_AllP_02, margin = .1, titleX = TRUE, titleY = TRUE)%>% #plots, margins, labels x and y included
+  layout(scene = list(aspectration=list(x=3,y=1)), showlegend = FALSE) #changing aspect ratio, legend not included
+plot_AllP #soutput shown
+``` 
+
+
+## Publication bias & bump in *p*-values (2)
+```{r loading Hyp, warning=FALSE, message = FALSE}
+#Reading the Excel file.
+Hypotheses_m <- read_excel("/Users/ECJ/Documents/Master's thesis/Excel/pb_bump_Hyp_presentation.xlsx", col_types = c("numeric"))
+
+#Plot binwidth .01.
+plot_Hyp_01 <- Hypotheses_m %>%
+  plot_ly(x = ~Reported.P.Value, marker = list(color = "lightgray", line = list(color = "darkgray", width = 2))) %>% #variable of interest and coloring
+  add_histogram(xbins = list(start = 0, end = .1, size = 0.01)) %>%  #bin details
+  layout(title = "<b>Exactly reported p-values in the range [0 -.10] from Hyp<b>", font=list(size = 12), #title 
+         yaxis = list(title = "Count", zeroline = FALSE), #label y-axis
+         xaxis = list(title = "P-value, binwidth = .01", zeroline = FALSE, dtick = 0.01), shapes = list(vline(.05))) #label x-axis, adding vertical line
+
+#Plot  binwidth .02.
+plot_Hyp_02 <- Hypotheses_m %>%
+  plot_ly(x = ~Reported.P.Value, marker = list(color = "lightgray", line = list(color = "darkgray", width = 2))) %>% #variable of interest and coloring
+  add_histogram(xbins = list(start = .01, end = .1, size = 0.02)) %>%  #bin details
+  layout(title = "<b>Exactly reported p-values in the range [0 -.10] from Hyp<b>", font=list(size = 12), #title 
+         yaxis = list(title = "Count", zeroline = FALSE), #label y-axis
+         xaxis = list(title = "P-value, binwidth = .02", zeroline = FALSE, dtick = 0.01), shapes = list(vline(.05))) #label x-axis, adding vertical line
+
+#Putting plots next to each other.
+plot_hyp <- subplot(plot_Hyp_01, plot_Hyp_02, margin = .1, titleX = TRUE, titleY = TRUE)%>% #plots, margins, labels x and y included
+  layout(scene = list(aspectration=list(x=3,y=1)), showlegend = FALSE) #changing aspect ratio, legend not included
+plot_hyp #output shown
+```
+
+
+ 
+
+
+<style>
+slides > slide { overflow: scroll; }
+slides > slide:not(.nobackground):after {
+  content: '';
+}
+</style>
+## References
+
+
+
+
